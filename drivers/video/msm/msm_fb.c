@@ -46,6 +46,7 @@
 #include <linux/sync.h>
 #include <linux/sw_sync.h>
 #include <linux/file.h>
+#include <linux/lcd_notify.h>
 
 #define MSM_FB_C
 #include "msm_fb.h"
@@ -1056,6 +1057,7 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 
 	switch (blank_mode) {
 	case FB_BLANK_UNBLANK:
+		lcd_notifier_call_chain(LCD_EVENT_ON_START, NULL);
 		if (!mfd->panel_power_on) {
 			ret = pdata->on(mfd->pdev);
 			if (ret == 0) {
@@ -1065,6 +1067,7 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 				mfd->panel_driver_on = mfd->op_enable;
 			}
 		}
+		lcd_notifier_call_chain(LCD_EVENT_ON_END, NULL);
 		break;
 
 	case FB_BLANK_VSYNC_SUSPEND:
@@ -1072,6 +1075,7 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 	case FB_BLANK_NORMAL:
 	case FB_BLANK_POWERDOWN:
 	default:
+		lcd_notifier_call_chain(LCD_EVENT_OFF_START, NULL);
 		if (mfd->panel_power_on) {
 			int curr_pwr_state;
 
@@ -1100,6 +1104,7 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 			msm_fb_release_timeline(mfd);
 			mfd->op_enable = TRUE;
 		}
+		lcd_notifier_call_chain(LCD_EVENT_OFF_END, NULL);
 		break;
 	}
 
