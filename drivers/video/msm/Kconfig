@@ -1005,6 +1005,11 @@ config FB_MSM_EBI2_PANEL_DETECT
 	---help---
 	  Support for EBI2 panel auto detect
 
+config LCD_NOTIFY
+	depends on !FB_MSM_MDSS
+	bool "Enable LCD Notifier Helper"
+	default y
+
 if FB_MSM_MDSS
 	source "drivers/video/msm/mdss/Kconfig"
 endif
