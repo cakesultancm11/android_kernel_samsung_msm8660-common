@@ -2229,4 +2229,11 @@ config SEC_LOG_LAST_KMSG
 	help
 	  This option enables /proc/last_kmsg support.
 
+config FORCE_FAST_CHARGE
+	bool "Force AC charge mode at will"
+	default y
+	help
+	  A simple sysfs interface to force adapters that
+	  are detected as USB to charge as AC.
+
 source "arch/arm/mach-msm/display/Kconfig"
