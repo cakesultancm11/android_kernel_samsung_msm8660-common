@@ -152,31 +152,15 @@ static u8 firm_version = 0;
 #endif
 
 #ifdef CONFIG_TOUCH_CYPRESS_SWEEP2WAKE
-int s2w_switch = 0;
-int s2s_switch = 0;
+int s2w_switch = 1;
+int s2s_switch = 1;
 int s2w_start = 0;
 int s2w_count = 0;
-int s2w_lenient = 0;
+int s2w_lenient = 1;
 bool scr_suspended = false, exec_count = true;
 bool scr_on_touch = false, barrier[2] = {false, false};
 static struct input_dev * sweep2wake_pwrdev;
 static DEFINE_MUTEX(pwrkeyworklock);
-
-static int __init read_s2w_cmdline(char *s2w)
-{
-	if (strcmp(s2w, "1") == 0) {
-		printk(KERN_INFO "[cmdline_s2w]: Sweep2Wake enabled. | s2w='%s'", s2w);
-		s2w_switch = 1;
-	} else if (strcmp(s2w, "0") == 0) {
-		printk(KERN_INFO "[cmdline_s2w]: Sweep2Wake disabled. | s2w='%s'", s2w);
-		s2w_switch = 0;
-	} else {
-		printk(KERN_INFO "[cmdline_s2w]: No valid input found. Sweep2Wake disabled. | s2w='%s'", s2w);
-		s2w_switch = 0;
-	}
-	return 1;
-}
-__setup("s2w=", read_s2w_cmdline);
 
 extern void sweep2wake_setdev(struct input_dev * input_device) {
 	sweep2wake_pwrdev = input_device;
