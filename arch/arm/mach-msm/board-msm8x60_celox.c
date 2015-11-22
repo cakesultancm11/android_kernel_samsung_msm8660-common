@@ -4483,7 +4483,7 @@ static void fsa9480_usb_cb(bool attached)
 	switch(set_cable_status) {
 #ifdef CONFIG_FORCE_FAST_CHARGE
     		case CABLE_TYPE_USB:
-			if (force_fast_charge = 1) {
+			if (force_fast_charge) {
 				value.intval = POWER_SUPPLY_TYPE_MAINS;
 				pr_debug(KERN_WARNING "Fast Charge is Enabled, value: %d\n", force_fast_charge);
 			} else {
