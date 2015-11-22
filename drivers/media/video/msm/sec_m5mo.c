@@ -2184,7 +2184,8 @@ static long m5mo_set_sensor_mode(int mode)
 			init_completion(&snapshot);
 			schedule_delayed_work(&flash_work, 0);
 			usleep(10 * 1000);
-		else if(m5mo_highpower_flash) m5mo_last_flashmsec = jiffies_to_msecs(jiffies);
+		} else if (m5mo_highpower_flash) {
+			m5mo_last_flashmsec = jiffies_to_msecs(jiffies);
 		}
 		m5mo_snapshot_mode();
 		break;
