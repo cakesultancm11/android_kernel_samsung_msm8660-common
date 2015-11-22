@@ -45,7 +45,6 @@
 #include <linux/i2c/bq27520.h>
 #include <linux/memblock.h>
 #include <linux/msm_tsens.h>
-#include <linux/fastchg.h>
 
 #ifdef CONFIG_TOUCHSCREEN_MELFAS
 #define TOUCHSCREEN_IRQ 		125  
@@ -4481,20 +4480,9 @@ static void fsa9480_usb_cb(bool attached)
 
 #ifdef CONFIG_BATTERY_SEC
 	switch(set_cable_status) {
-#ifdef CONFIG_FORCE_FAST_CHARGE
-    		case CABLE_TYPE_USB:
-			if (force_fast_charge = 1) {
-				value.intval = POWER_SUPPLY_TYPE_MAINS;
-				pr_debug(KERN_WARNING "Fast Charge is Enabled, value: %d\n", force_fast_charge);
-			} else {
-				value.intval = POWER_SUPPLY_TYPE_USB;
-			}
-			break;
-#else
 		case CABLE_TYPE_USB:
 			value.intval = POWER_SUPPLY_TYPE_USB;
 			break;
-#endif
 		case CABLE_TYPE_NONE:
 			value.intval = POWER_SUPPLY_TYPE_BATTERY;
 			break;
