@@ -46,9 +46,9 @@
 #define IMMVIBESPIAPI static
 
 #define LEVEL_MAX           100
-#define LEVEL_MIN           50
-#define LEVEL_DEFAULT       100
-#define LEVEL_THRESHOLD     100
+#define LEVEL_MIN           0
+#define LEVEL_DEFAULT       50
+#define LEVEL_THRESHOLD     75
 
 /*
 ** This SPI supports only one actuator.
