@@ -63,16 +63,16 @@ static struct msm_thermal_tuners {
 } therm_conf = {
 	.start = 0,
 
-	.trip_high_thresh = 80,
-	.reset_high_thresh = 75,
+	.trip_high_thresh = 76,
+	.reset_high_thresh = 72,
 	.freq_high_thresh = 384000,
 
-	.trip_mid_thresh = 69,
-	.reset_mid_thresh = 65,
+	.trip_mid_thresh = 70,
+	.reset_mid_thresh = 67,
 	.freq_mid_thresh = 972000,
 
 	.trip_low_thresh = 64,
-	.reset_low_thresh = 60,
+	.reset_low_thresh = 61,
 	.freq_low_thresh = 1188000,
 
 	.poll_ms = 3000,
