@@ -73,7 +73,7 @@ static struct delayed_work flash_work;
 static unsigned int snapshot_low_pwr = 0;
 static int req_flash_mode = 0;
 static DECLARE_COMPLETION(snapshot);
-static unsigned int force_lp_flash;
+static unsigned int force_lp_flash = 1;
 module_param(force_lp_flash, uint, 0644);
 
 #if defined (CAMERA_WXGA_PREVIEW)
