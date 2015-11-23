@@ -156,7 +156,7 @@ int s2w_switch = 1;
 int s2w_s2sonly = 0;
 int s2w_start = 0;
 int s2w_count = 0;
-int s2w_lenient = 0;
+int s2w_lenient = 1;
 bool scr_suspended = false, exec_count = true;
 bool scr_on_touch = false, barrier[2] = {false, false};
 static struct input_dev * sweep2wake_pwrdev;
