@@ -76,7 +76,7 @@ static int req_flash_mode = 0;
 static DECLARE_COMPLETION(snapshot);
 static int m5mo_last_flashmsec = 0;
 static bool m5mo_highpower_flash = true;
-static unsigned int force_lp_flash = 1;
+static unsigned int force_lp_flash;
 module_param(force_lp_flash, uint, 0644);
 
 static bool m5mo_flash_use_lowpower(void)
