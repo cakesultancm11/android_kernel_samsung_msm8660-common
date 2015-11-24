@@ -46,7 +46,7 @@
 #define IMMVIBESPIAPI static
 
 #define LEVEL_MAX           100
-#define LEVEL_MIN           50
+#define LEVEL_MIN           75
 #define LEVEL_DEFAULT       100
 #define LEVEL_THRESHOLD     100
 
