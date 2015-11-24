@@ -60,10 +60,6 @@
 #define MSM_FB_NUM	3
 #endif
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-#undef CONFIG_HAS_EARLYSUSPEND
-#endif
-
 int backlight_dimmer = 0;
 module_param(backlight_dimmer, int, 0755);
 
