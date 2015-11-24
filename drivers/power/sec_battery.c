@@ -27,7 +27,9 @@
 #include <linux/proc_fs.h>
 #include <linux/android_alarm.h>
 #include <linux/msm_adc.h>
+#ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
+#endif
 #include <mach/sec_battery.h>
 #include <linux/gpio.h>
 #include <linux/pmic8058-xoadc.h>
@@ -564,7 +566,9 @@ struct sec_bat_info {
 	struct delayed_work polling_work;
 	struct delayed_work measure_work;
 	struct delayed_work otg_work;
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	struct early_suspend bat_early_suspend;
+#endif
 	struct sec_temperature_spec temper_spec;
 
 	unsigned long charging_start_time;
@@ -4000,6 +4004,7 @@ static int sec_bat_read_proc(char *buf, char **start,
 	return len;
 }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static void sec_bat_early_suspend(struct early_suspend *handle)
 {
 	struct sec_bat_info *info = container_of(handle, struct sec_bat_info,
@@ -4021,6 +4026,7 @@ static void sec_bat_late_resume(struct early_suspend *handle)
 
 	return;
 }
+#endif
 
 static __devinit int sec_bat_probe(struct platform_device *pdev)
 {
@@ -4273,10 +4279,12 @@ static __devinit int sec_bat_probe(struct platform_device *pdev)
 	}
 #endif
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	info->bat_early_suspend.level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 1;
 	info->bat_early_suspend.suspend = sec_bat_early_suspend;
 	info->bat_early_suspend.resume = sec_bat_late_resume;
 	register_early_suspend(&info->bat_early_suspend);
+#endif
 
 	/* for lpm test */
 	/*

@@ -131,7 +131,9 @@ struct ld9040 {
 	struct lcd_device		*ld;
 	struct backlight_device		*bd;
 	struct lcd_platform_data	*lcd_pd;
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	struct early_suspend    early_suspend;
+#endif
 
 #if defined(SMART_DIMMING) // smartdimming
 	boolean	isSmartDimming;

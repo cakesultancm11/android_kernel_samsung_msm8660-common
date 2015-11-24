@@ -24,7 +24,9 @@
 #define pr_fmt(fmt) "EBLN: " fmt
 
 #include <linux/device.h>
+#ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
+#endif
 #include <linux/enhanced_bln.h>
 #include <linux/hrtimer.h>
 #include <linux/kernel.h>
@@ -135,6 +137,7 @@ static void ebln_main(struct work_struct *work)
 	}
 }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static void ebln_early_suspend(struct early_suspend *h)
 {
 	suspended = true;
@@ -150,6 +153,7 @@ static struct early_suspend ebln_early_suspend_handler = {
 	.suspend = ebln_early_suspend,
 	.resume = ebln_late_resume,
 };
+#endif
 
 void register_ebln_implementation(struct ebln_implementation *imp)
 {
@@ -314,7 +318,9 @@ static int __init enhanced_bln_init(void)
 
 	wake_lock_init(&ebln_wake_lock, WAKE_LOCK_SUSPEND, "ebln_wake_lock");
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	register_early_suspend(&ebln_early_suspend_handler);
+#endif
 err:
 	return ret;
 }

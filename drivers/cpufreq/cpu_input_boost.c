@@ -15,7 +15,9 @@
 
 #include <linux/cpu.h>
 #include <linux/cpufreq.h>
+#ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
+#endif
 #include <linux/hrtimer.h>
 #include <linux/input.h>
 #include <linux/module.h>
@@ -188,6 +190,7 @@ static struct notifier_block cpu_do_boost_nb = {
 	.notifier_call = cpu_do_boost,
 };
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static void cpu_iboost_early_suspend(struct early_suspend *handler)
 {
 	suspended = true;
@@ -203,6 +206,7 @@ static struct early_suspend __refdata cpu_iboost_early_suspend_hndlr = {
 	.suspend = cpu_iboost_early_suspend,
 	.resume = cpu_iboost_late_resume,
 };
+#endif
 
 static void cpu_iboost_input_event(struct input_handle *handle, unsigned int type,
 		unsigned int code, int value)
@@ -434,7 +438,9 @@ static int __init cpu_iboost_init(void)
 		goto err;
 	}
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	register_early_suspend(&cpu_iboost_early_suspend_hndlr);
+#endif
 
 	cpu_iboost_kobject = kobject_create_and_add("cpu_input_boost", kernel_kobj);
 	if (!cpu_iboost_kobject) {
