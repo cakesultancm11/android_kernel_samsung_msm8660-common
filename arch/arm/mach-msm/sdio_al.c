@@ -2575,8 +2575,7 @@ static void sdio_al_timer_handler(unsigned long data)
 {
 	struct sdio_al_device *sdio_al_dev = (struct sdio_al_device *)data;
 	if (sdio_al_dev == NULL) {
-		sdio_al_loge(sdio_al_dev->dev_log, MODULE_NAME ": NULL "
-				"sdio_al_dev for data %lu\n", data);
+		pr_err("NULL sdio_al_dev for data %lu\n", data);
 		return;
 	}
 	if (sdio_al_dev->state != CARD_INSERTED) {
@@ -3149,8 +3148,7 @@ static int sdio_read_from_closed_ch(struct sdio_channel *ch, int len)
 	struct sdio_al_device *sdio_al_dev = NULL;
 
 	if (!ch) {
-		sdio_al_loge(ch->sdio_al_dev->dev_log,
-			MODULE_NAME ":%s: NULL channel\n",  __func__);
+		pr_err("%s: NULL channel\n",  __func__);
 		return -ENODEV;
 	}
 
@@ -3451,8 +3449,7 @@ static void sdio_al_close_all_channels(struct sdio_al_device *sdio_al_dev)
 	sdio_al_logi(&sdio_al->gen_log, MODULE_NAME ": %s", __func__);
 
 	if (!sdio_al_dev) {
-		sdio_al_loge(sdio_al_dev->dev_log,
-			MODULE_NAME ": %s: NULL device", __func__);
+		pr_err("%s: NULL device", __func__);
 		return;
 	}
 	for (j = 0; j < SDIO_AL_MAX_CHANNELS; j++) {
@@ -4013,6 +4010,8 @@ static void sdio_al_sdio_remove(struct sdio_func *func)
 			"for card %d\n", __func__, card->host->index);
 	sdio_al_dev->is_ready = false; /* Flag worker to exit */
 	sdio_al_dev->ask_mbox = false;
+	/*Wakeup bootworker if card is being removed during dbl upload to modem*/
+	sdio_al_dev->bootloader_done = 1;
 	ask_reading_mailbox(sdio_al_dev); /* Wakeup worker */
 
 	stop_and_del_timer(sdio_al_dev);
