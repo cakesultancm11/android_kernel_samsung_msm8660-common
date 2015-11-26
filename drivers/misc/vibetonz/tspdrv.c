@@ -48,7 +48,9 @@
 #include "tspdrv.h"
 #include "ImmVibeSPI.c"
 #include <linux/i2c.h>
-#include <linux/earlysuspend.h>
+#ifdef CONFIG_LCD_NOTIFY
+#include <linux/lcd_notify.h>
+#endif
 #if defined(VIBE_DEBUG) && defined(VIBE_RECORD)
 #include <tspdrvRecorder.c>
 #endif

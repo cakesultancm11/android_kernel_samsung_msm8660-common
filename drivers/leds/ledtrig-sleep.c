@@ -13,7 +13,9 @@
  *
  */
 
-#include <linux/earlysuspend.h>
+#ifdef CONFIG_LCD_NOTIFY
+#include <linux/lcd_notify.h>
+#endif
 #include <linux/leds.h>
 #include <linux/suspend.h>
 
@@ -21,26 +23,39 @@ static int ledtrig_sleep_pm_callback(struct notifier_block *nfb,
 					unsigned long action,
 					void *ignored);
 
+#ifdef CONFIG_LCD_NOTIFY
+static struct notifier_block ledtrig_lcd_notif;
+#endif
+
 DEFINE_LED_TRIGGER(ledtrig_sleep)
 static struct notifier_block ledtrig_sleep_pm_notifier = {
 	.notifier_call = ledtrig_sleep_pm_callback,
 	.priority = 0,
 };
 
-static void ledtrig_sleep_early_suspend(struct early_suspend *h)
-{
-	led_trigger_event(ledtrig_sleep, LED_FULL);
-}
+#ifdef CONFIG_LCD_NOTIFY
+static int ledtrig_lcd_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data) {
+	pr_debug("%s: event = %lu\n", __func__, event);
 
-static void ledtrig_sleep_early_resume(struct early_suspend *h)
-{
-	led_trigger_event(ledtrig_sleep, LED_OFF);
-}
+	switch (event) {
+	case LCD_EVENT_ON_START:
+		led_trigger_event(ledtrig_sleep, LED_OFF);
+		break;
+	case LCD_EVENT_ON_END:
+		break;
+	case LCD_EVENT_OFF_START:
+		break;
+	case LCD_EVENT_OFF_END:
+		led_trigger_event(ledtrig_sleep, LED_FULL);
+		break;
+	default:
+		break;
+	}
 
-static struct early_suspend ledtrig_sleep_early_suspend_handler = {
-	.suspend = ledtrig_sleep_early_suspend,
-	.resume = ledtrig_sleep_early_resume,
-};
+	return 0;
+}
+#endif
 
 static int ledtrig_sleep_pm_callback(struct notifier_block *nfb,
 					unsigned long action,
@@ -62,15 +77,25 @@ static int ledtrig_sleep_pm_callback(struct notifier_block *nfb,
 
 static int __init ledtrig_sleep_init(void)
 {
+	int ret = 0;
 	led_trigger_register_simple("sleep", &ledtrig_sleep);
 	register_pm_notifier(&ledtrig_sleep_pm_notifier);
-	register_early_suspend(&ledtrig_sleep_early_suspend_handler);
-	return 0;
+#ifdef CONFIG_LCD_NOTIFY
+	ledtrig_lcd_notif.notifier_call = ledtrig_lcd_notifier_callback;
+	if (lcd_register_client(&ledtrig_lcd_notif) != 0) {
+		pr_err("%s: Failed to register lcd callback\n", __func__);
+		lcd_unregister_client(&ledtrig_lcd_notif);
+		ret = -EINVAL;
+	}
+#endif
+	return ret;
 }
 
 static void __exit ledtrig_sleep_exit(void)
 {
-	unregister_early_suspend(&ledtrig_sleep_early_suspend_handler);
+#ifdef CONFIG_LCD_NOTIFY
+	lcd_unregister_client(&ledtrig_lcd_notif);
+#endif
 	unregister_pm_notifier(&ledtrig_sleep_pm_notifier);
 	led_trigger_unregister_simple(ledtrig_sleep);
 }

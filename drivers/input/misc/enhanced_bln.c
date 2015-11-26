@@ -24,8 +24,8 @@
 #define pr_fmt(fmt) "EBLN: " fmt
 
 #include <linux/device.h>
-#ifdef CONFIG_HAS_EARLYSUSPEND
-#include <linux/earlysuspend.h>
+#ifdef CONFIG_LCD_NOTIFY
+#include <linux/lcd_notify.h>
 #endif
 #include <linux/enhanced_bln.h>
 #include <linux/hrtimer.h>
@@ -74,6 +74,9 @@ static struct ebln_config {
 static struct ebln_implementation *ebln_imp = NULL;
 static struct delayed_work ebln_main_work;
 static struct wake_lock ebln_wake_lock;
+#ifdef CONFIG_LCD_NOTIFY
+static struct notifier_block ebln_lcd_notif;
+#endif
 
 static bool blink_callback;
 static bool suspended;
@@ -137,22 +140,28 @@ static void ebln_main(struct work_struct *work)
 	}
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void ebln_early_suspend(struct early_suspend *h)
-{
-	suspended = true;
-}
+#ifdef CONFIG_LCD_NOTIFY
+static int ebln_lcd_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data) {
+	pr_debug("%s: event = %lu\n", __func__, event);
 
-static void ebln_late_resume(struct early_suspend *h)
-{
-	suspended = false;
-}
+	switch (event) {
+	case LCD_EVENT_ON_START:
+		break;
+	case LCD_EVENT_ON_END:
+		suspended = false;
+		break;
+	case LCD_EVENT_OFF_START:
+		break;
+	case LCD_EVENT_OFF_END:
+		suspended = true;
+		break;
+	default:
+		break;
+	}
 
-static struct early_suspend ebln_early_suspend_handler = {
-	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
-	.suspend = ebln_early_suspend,
-	.resume = ebln_late_resume,
-};
+	return 0;
+}
 #endif
 
 void register_ebln_implementation(struct ebln_implementation *imp)
@@ -318,8 +327,14 @@ static int __init enhanced_bln_init(void)
 
 	wake_lock_init(&ebln_wake_lock, WAKE_LOCK_SUSPEND, "ebln_wake_lock");
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	register_early_suspend(&ebln_early_suspend_handler);
+#ifdef CONFIG_LCD_NOTIFY
+	ebln_lcd_notif.notifier_call = ebln_lcd_notifier_callback;
+	if (lcd_register_client(&ebln_lcd_notif) != 0) {
+		pr_err("%s: Failed to register lcd callback\n", __func__);
+		ret = -EINVAL;
+		lcd_unregister_client(&ebln_lcd_notif);
+		goto err;
+	}
 #endif
 err:
 	return ret;

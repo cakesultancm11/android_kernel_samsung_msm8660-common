@@ -28,9 +28,8 @@ struct buffer {
 	unsigned addr;
 };
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
+#ifdef CONFIG_LCD_NOTIFY
 struct audlpa_suspend_ctl {
-	struct early_suspend node;
 	struct audio *audio;
 };
 #endif
@@ -69,7 +68,7 @@ struct audio {
 	int buf_refresh;
 	int teos; /* valid only if tunnel mode & no data left for decoder */
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
+#ifdef CONFIG_LCD_NOTIFY
 	struct audlpa_suspend_ctl suspend_ctl;
 #endif
 

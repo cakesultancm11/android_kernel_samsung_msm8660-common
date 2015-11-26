@@ -27,8 +27,8 @@
 #include <linux/proc_fs.h>
 #include <linux/android_alarm.h>
 #include <linux/msm_adc.h>
-#ifdef CONFIG_HAS_EARLYSUSPEND
-#include <linux/earlysuspend.h>
+#ifdef CONFIG_LCD_NOTIFY
+#include <linux/lcd_notify.h>
 #endif
 #include <mach/sec_battery.h>
 #include <linux/gpio.h>
@@ -501,6 +501,10 @@ struct sec_batt_adc_chan {
 };
 #endif
 
+#ifdef CONFIG_LCD_NOTIFY
+static struct notifier_block sec_bat_lcd_notif;
+#endif
+
 struct sec_bat_info {
 	struct device *dev;
 
@@ -566,9 +570,6 @@ struct sec_bat_info {
 	struct delayed_work polling_work;
 	struct delayed_work measure_work;
 	struct delayed_work otg_work;
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	struct early_suspend bat_early_suspend;
-#endif
 	struct sec_temperature_spec temper_spec;
 
 	unsigned long charging_start_time;
@@ -4004,11 +4005,10 @@ static int sec_bat_read_proc(char *buf, char **start,
 	return len;
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void sec_bat_early_suspend(struct early_suspend *handle)
+#ifdef CONFIG_LCD_NOTIFY
+static void sec_bat_early_suspend(struct notifier_block *handle)
 {
-	struct sec_bat_info *info = container_of(handle, struct sec_bat_info,
-						 bat_early_suspend);
+	struct sec_bat_info *info = NULL;
 
 	pr_info("%s...\n", __func__);
 	info->is_esus_state = true;
@@ -4016,15 +4016,36 @@ static void sec_bat_early_suspend(struct early_suspend *handle)
 	return;
 }
 
-static void sec_bat_late_resume(struct early_suspend *handle)
+static void sec_bat_late_resume(struct notifier_block *handle)
 {
-	struct sec_bat_info *info = container_of(handle, struct sec_bat_info,
-						 bat_early_suspend);
+	struct sec_bat_info *info = NULL;
 
 	pr_info("%s...\n", __func__);
 	info->is_esus_state = false;
 
 	return;
+}
+
+static int sec_bat_lcd_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data) {
+	pr_debug("%s: event = %lu\n", __func__, event);
+
+	switch (event) {
+	case LCD_EVENT_ON_START:
+		sec_bat_late_resume(this);
+		break;
+	case LCD_EVENT_ON_END:
+		break;
+	case LCD_EVENT_OFF_START:
+		sec_bat_early_suspend(this);
+		break;
+	case LCD_EVENT_OFF_END:
+		break;
+	default:
+		break;
+	}
+
+	return 0;
 }
 #endif
 
@@ -4279,11 +4300,14 @@ static __devinit int sec_bat_probe(struct platform_device *pdev)
 	}
 #endif
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	info->bat_early_suspend.level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 1;
-	info->bat_early_suspend.suspend = sec_bat_early_suspend;
-	info->bat_early_suspend.resume = sec_bat_late_resume;
-	register_early_suspend(&info->bat_early_suspend);
+#ifdef CONFIG_LCD_NOTIFY
+	sec_bat_lcd_notif.notifier_call = sec_bat_lcd_notifier_callback;
+	if (lcd_register_client(&sec_bat_lcd_notif) != 0) {
+		pr_err("%s: Failed to register lcd callback\n", __func__);
+		ret = -EINVAL;
+		lcd_unregister_client(&sec_bat_lcd_notif);
+		goto err;
+	}
 #endif
 
 	/* for lpm test */
@@ -4309,6 +4333,8 @@ static __devinit int sec_bat_probe(struct platform_device *pdev)
 
 	return 0;
 
+err:
+	return ret;
 err_supply_unreg_ac:
 	power_supply_unregister(&info->psy_ac);
 err_supply_unreg_usb:

@@ -17,7 +17,9 @@
  *
  */
 
-#include <linux/earlysuspend.h>
+#ifdef CONFIG_LCD_NOTIFY
+#include <linux/lcd_notify.h>
+#endif
 #include <linux/init.h>
 #include <linux/cpufreq.h>
 #include <linux/workqueue.h>

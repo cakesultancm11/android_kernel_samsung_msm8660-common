@@ -32,7 +32,9 @@
 #include <asm/gpio.h>
 #include <linux/miscdevice.h>
 #include <asm/uaccess.h>
-#include <linux/earlysuspend.h>
+#ifdef CONFIG_LCD_NOTIFY
+#include <linux/lcd_notify.h>
+#endif
 #include <asm/io.h>
 #include <linux/enhanced_bln.h>
 #ifdef CONFIG_CPU_FREQ
@@ -142,6 +144,9 @@ static u8 idac2 = 0;
 static u8 idac3 = 0;
 static int touchkey_enable = 0;
 extern int touch_is_pressed;
+#ifdef CONFIG_LCD_NOTIFY
+static struct notifier_block cypress_lcd_notif;
+#endif
 
 #if defined (CONFIG_EPEN_WACOM_G5SP)
 extern int wacom_is_pressed;
@@ -191,7 +196,6 @@ void sweep2wake_pwrtrigger(void) {
 struct i2c_touchkey_driver {
 	struct i2c_client *client;
 	struct input_dev *input_dev;
-	struct early_suspend early_suspend;
 	struct mutex mutex;
 };
 struct i2c_touchkey_driver *touchkey_driver = NULL;
@@ -716,8 +720,8 @@ static void touchkey_auto_calibration(int autocal_on_off)
 }
 #endif
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void sec_touchkey_early_suspend(struct early_suspend *h)
+#ifdef CONFIG_LCD_NOTIFY
+static void sec_touchkey_early_suspend(struct notifier_block *h)
 {
     int index =0;
 #if defined (CONFIG_USA_MODEL_SGH_I717)
@@ -835,7 +839,7 @@ static void sec_touchkey_early_suspend(struct early_suspend *h)
     mutex_unlock(&touchkey_driver->mutex);
 }
 
-static void sec_touchkey_early_resume(struct early_suspend *h)
+static void sec_touchkey_early_resume(struct notifier_block *h)
 {
 #if defined (CONFIG_EUR_MODEL_GT_I9210) || defined(CONFIG_USA_MODEL_SGH_I577) || defined(CONFIG_CAN_MODEL_SGH_I577R) || defined (CONFIG_USA_MODEL_SGH_T769) || defined (CONFIG_USA_MODEL_SGH_T989)
  	int ret =0;
@@ -1027,7 +1031,29 @@ if(touchled_cmd_reversed) {
 
         mutex_unlock(&touchkey_driver->mutex);
 }
-#endif				// End of CONFIG_HAS_EARLYSUSPEND
+
+static int cypress_lcd_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data) {
+	pr_debug("%s: event = %lu\n", __func__, event);
+
+	switch (event) {
+	case LCD_EVENT_ON_START:
+		sec_touchkey_early_resume(this);
+		break;
+	case LCD_EVENT_ON_END:
+		break;
+	case LCD_EVENT_OFF_START:
+		sec_touchkey_early_suspend(this);
+		break;
+	case LCD_EVENT_OFF_END:
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+#endif				// End of CONFIG_LCD_NOTIFY
 
 #if defined(CONFIG_ENHANCED_BLN)
 static unsigned int req_state;
@@ -1196,11 +1222,14 @@ static int i2c_touchkey_probe(struct i2c_client *client, const struct i2c_device
     //	gpio_pend_mask_mem = ioremap(INT_PEND_BASE, 0x10);  //temp ks
     INIT_DELAYED_WORK(&touch_resume_work, touchkey_resume_func);
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-    touchkey_driver->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN - 10;
-    touchkey_driver->early_suspend.suspend = sec_touchkey_early_suspend;
-    touchkey_driver->early_suspend.resume = sec_touchkey_early_resume;
-    register_early_suspend(&touchkey_driver->early_suspend);
+#ifdef CONFIG_LCD_NOTIFY
+	cypress_lcd_notif.notifier_call = cypress_lcd_notifier_callback;
+	if (lcd_register_client(&cypress_lcd_notif) != 0) {
+		pr_err("%s: Failed to register lcd callback\n", __func__);
+		err = -EINVAL;
+		lcd_unregister_client(&cypress_lcd_notif);
+		return err;
+	}
 #endif
 
 	touchkey_enable = 1;

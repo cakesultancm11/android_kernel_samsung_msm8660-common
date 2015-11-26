@@ -55,7 +55,7 @@
 #include <asm/gpio.h>
 #include <linux/miscdevice.h>
 #include <asm/uaccess.h>
-#include <linux/earlysuspend.h>
+#include <linux/lcd_notify.h>
 #include <asm/io.h>
 #include <linux/hrtimer.h>
 

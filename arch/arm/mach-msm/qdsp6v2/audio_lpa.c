@@ -27,7 +27,9 @@
 #include <linux/dma-mapping.h>
 #include <linux/debugfs.h>
 #include <linux/delay.h>
-#include <linux/earlysuspend.h>
+#ifdef CONFIG_LCD_NOTIFY
+#include <linux/lcd_notify.h>
+#endif
 #include <linux/ion.h>
 #include <linux/list.h>
 #include <linux/slab.h>
@@ -82,6 +84,10 @@
 	int res = (IN_RANGE(__r1, __v) || IN_RANGE(__r1, __e));	\
 	res;							\
 })
+
+#ifdef CONFIG_LCD_NOTIFY
+static struct notifier_block lpa_lcd_notif;
+#endif
 
 struct audlpa_event {
 	struct list_head list;
@@ -1199,8 +1205,8 @@ static int audio_release(struct inode *inode, struct file *file)
 	q6asm_audio_client_free(audio->ac);
         audlpa_reset_ion_region(audio);
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	unregister_early_suspend(&audio->suspend_ctl.node);
+#ifdef CONFIG_LCD_NOTIFY
+	lcd_unregister_client(&lpa_lcd_notif);
 #endif
 	audio->opened = 0;
 	audio->out_enabled = 0;
@@ -1251,25 +1257,45 @@ static void audlpa_post_event(struct audio *audio, int type,
 	wake_up(&audio->event_wait);
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void audlpa_suspend(struct early_suspend *h)
+#ifdef CONFIG_LCD_NOTIFY
+static void audlpa_suspend(struct notifier_block *h)
 {
-	struct audlpa_suspend_ctl *ctl =
-		container_of(h, struct audlpa_suspend_ctl, node);
+	struct audlpa_suspend_ctl *ctl = NULL;
 	union msm_audio_event_payload payload;
 
 	pr_debug("%s:\n", __func__);
 	audlpa_post_event(ctl->audio, AUDIO_EVENT_SUSPEND, payload);
 }
 
-static void audlpa_resume(struct early_suspend *h)
+static void audlpa_resume(struct notifier_block *h)
 {
-	struct audlpa_suspend_ctl *ctl =
-		container_of(h, struct audlpa_suspend_ctl, node);
+	struct audlpa_suspend_ctl *ctl = NULL;
 	union msm_audio_event_payload payload;
 
 	pr_debug("%s:\n", __func__);
 	audlpa_post_event(ctl->audio, AUDIO_EVENT_RESUME, payload);
+}
+
+static int lpa_lcd_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data) {
+	pr_debug("%s: event = %lu\n", __func__, event);
+
+	switch (event) {
+	case LCD_EVENT_ON_START:
+		break;
+	case LCD_EVENT_ON_END:
+		audlpa_resume(this);
+		break;
+	case LCD_EVENT_OFF_START:
+		audlpa_suspend(this);
+		break;
+	case LCD_EVENT_OFF_END:
+		break;
+	default:
+		break;
+	}
+
+	return 0;
 }
 #endif
 
@@ -1429,12 +1455,14 @@ static int audio_open(struct inode *inode, struct file *file)
 	if (IS_ERR(audio->dentry))
 		pr_err("%s: debugfs_create_file failed\n", __func__);
 #endif
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	audio->suspend_ctl.node.level = EARLY_SUSPEND_LEVEL_DISABLE_FB;
-	audio->suspend_ctl.node.resume = audlpa_resume;
-	audio->suspend_ctl.node.suspend = audlpa_suspend;
-	audio->suspend_ctl.audio = audio;
-	register_early_suspend(&audio->suspend_ctl.node);
+#ifdef CONFIG_LCD_NOTIFY
+	lpa_lcd_notif.notifier_call = lpa_lcd_notifier_callback;
+	if (lcd_register_client(&lpa_lcd_notif) != 0) {
+		pr_err("%s: Failed to register lcd callback\n", __func__);
+		rc = -EINVAL;
+		lcd_unregister_client(&lpa_lcd_notif);
+		goto err;
+	}
 #endif
 	for (i = 0; i < AUDLPA_EVENT_NUM; i++) {
 		e_node = kmalloc(sizeof(struct audlpa_event), GFP_KERNEL);

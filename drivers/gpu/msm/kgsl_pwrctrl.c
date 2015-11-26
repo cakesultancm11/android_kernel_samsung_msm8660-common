@@ -33,6 +33,8 @@
 #define UPDATE_BUSY_VAL		1000000
 #define UPDATE_BUSY		50
 
+static struct notifier_block kgsl_lcd_notif;
+
 struct clk_pair {
 	const char *name;
 	uint map;
@@ -852,6 +854,29 @@ void kgsl_pwrctrl_irq(struct kgsl_device *device, int state)
 }
 EXPORT_SYMBOL(kgsl_pwrctrl_irq);
 
+static int kgsl_lcd_notifier_callback(struct notifier_block *this,
+                                unsigned long event, void *data) {
+        pr_debug("%s: event = %lu\n", __func__, event);
+
+        switch (event) {
+        case LCD_EVENT_ON_START:
+                kgsl_late_resume_driver(this);
+                break;
+        case LCD_EVENT_ON_END:
+                break;
+        case LCD_EVENT_OFF_START:
+                break;
+        case LCD_EVENT_OFF_END:
+                kgsl_early_suspend_driver(this);
+                break;
+        default:
+                break;
+        }
+
+        return 0;
+}
+EXPORT_SYMBOL(kgsl_lcd_notifier_callback);
+
 int kgsl_pwrctrl_init(struct kgsl_device *device)
 {
 	int i, result = 0;
@@ -951,7 +976,13 @@ int kgsl_pwrctrl_init(struct kgsl_device *device)
 
 
 	pm_runtime_enable(device->parentdev);
-	register_early_suspend(&device->display_off);
+	kgsl_lcd_notif.notifier_call = kgsl_lcd_notifier_callback;
+	if (lcd_register_client(&kgsl_lcd_notif) != 0) {
+		pr_err("%s: Failed to register lcd callback\n", __func__);
+		result = -EINVAL;
+		lcd_unregister_client(&kgsl_lcd_notif);
+		goto done;
+	}
 	return result;
 
 clk_err:
@@ -971,7 +1002,7 @@ void kgsl_pwrctrl_close(struct kgsl_device *device)
 	KGSL_PWR_INFO(device, "close device %d\n", device->id);
 
 	pm_runtime_disable(device->parentdev);
-	unregister_early_suspend(&device->display_off);
+	lcd_unregister_client(&kgsl_lcd_notif);
 
 	clk_put(pwr->ebi1_clk);
 

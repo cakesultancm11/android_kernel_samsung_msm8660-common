@@ -15,8 +15,8 @@
 
 #include <linux/cpu.h>
 #include <linux/cpufreq.h>
-#ifdef CONFIG_HAS_EARLYSUSPEND
-#include <linux/earlysuspend.h>
+#ifdef CONFIG_LCD_NOTIFY
+#include <linux/lcd_notify.h>
 #endif
 #include <linux/hrtimer.h>
 #include <linux/input.h>
@@ -46,6 +46,9 @@ static bool dual_core = (CONFIG_NR_CPUS == 2);
 static unsigned int boost_freq[3] __read_mostly;
 static unsigned int boost_ms[3];
 static unsigned int enabled __read_mostly;
+#ifdef CONFIG_LCD_NOTIFY
+static struct notifier_block cpu_iboost_lcd_notif;
+#endif
 
 static u64 last_input_time;
 #define MIN_INPUT_INTERVAL (150 * USEC_PER_MSEC)
@@ -190,22 +193,28 @@ static struct notifier_block cpu_do_boost_nb = {
 	.notifier_call = cpu_do_boost,
 };
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void cpu_iboost_early_suspend(struct early_suspend *handler)
-{
-	suspended = true;
-}
+#ifdef CONFIG_LCD_NOTIFY
+static int cpu_iboost_lcd_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data) {
+	pr_debug("%s: event = %lu\n", __func__, event);
 
-static void __cpuinit cpu_iboost_late_resume(struct early_suspend *handler)
-{
-	suspended = false;
-}
+	switch (event) {
+	case LCD_EVENT_ON_START:
+		break;
+	case LCD_EVENT_ON_END:
+		suspended = false;
+		break;
+	case LCD_EVENT_OFF_START:
+		break;
+	case LCD_EVENT_OFF_END:
+		suspended = true;
+		break;
+	default:
+		break;
+	}
 
-static struct early_suspend __refdata cpu_iboost_early_suspend_hndlr = {
-	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
-	.suspend = cpu_iboost_early_suspend,
-	.resume = cpu_iboost_late_resume,
-};
+	return 0;
+}
 #endif
 
 static void cpu_iboost_input_event(struct input_handle *handle, unsigned int type,
@@ -438,8 +447,14 @@ static int __init cpu_iboost_init(void)
 		goto err;
 	}
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	register_early_suspend(&cpu_iboost_early_suspend_hndlr);
+#ifdef CONFIG_LCD_NOTIFY
+	cpu_iboost_lcd_notif.notifier_call = cpu_iboost_lcd_notifier_callback;
+	if (lcd_register_client(&cpu_iboost_lcd_notif) != 0) {
+		pr_err("%s: Failed to register lcd callback\n", __func__);
+		ret = -EINVAL;
+		lcd_unregister_client(&cpu_iboost_lcd_notif);
+		goto err;
+	}
 #endif
 
 	cpu_iboost_kobject = kobject_create_and_add("cpu_input_boost", kernel_kobj);

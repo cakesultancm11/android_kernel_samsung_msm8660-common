@@ -510,10 +510,9 @@ const struct dev_pm_ops kgsl_pm_ops = {
 };
 EXPORT_SYMBOL(kgsl_pm_ops);
 
-void kgsl_early_suspend_driver(struct early_suspend *h)
+void kgsl_early_suspend_driver(struct notifier_block *h)
 {
-	struct kgsl_device *device = container_of(h,
-					struct kgsl_device, display_off);
+	struct kgsl_device *device = NULL;
 	KGSL_PWR_WARN(device, "early suspend start\n");
 	mutex_lock(&device->mutex);
 	device->pwrctrl.restore_slumber = true;
@@ -539,10 +538,9 @@ int kgsl_resume_driver(struct platform_device *pdev)
 }
 EXPORT_SYMBOL(kgsl_resume_driver);
 
-void kgsl_late_resume_driver(struct early_suspend *h)
+void kgsl_late_resume_driver(struct notifier_block *h)
 {
-	struct kgsl_device *device = container_of(h,
-					struct kgsl_device, display_off);
+	struct kgsl_device *device = NULL;
 	KGSL_PWR_WARN(device, "late resume start\n");
 	mutex_lock(&device->mutex);
 	device->pwrctrl.restore_slumber = false;

@@ -19,7 +19,9 @@
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
 #include <linux/delay.h>
-#include <linux/earlysuspend.h>
+#ifdef CONFIG_LCD_NOTIFY
+#include <linux/lcd_notify.h>
+#endif
 #include <linux/slab.h>
 #include <linux/gpio.h>
 #include <linux/i2c/mxt224_celox.h>
@@ -170,12 +172,13 @@ typedef enum
 ERR_RTN_CONTIOIN gErrCondition = ERR_RTN_CONDITION_IDLE;
 #endif
 
-
+#ifdef CONFIG_LCD_NOTIFY
+static struct notifier_block atmel_lcd_notif;
+#endif
 
 struct mxt224_data {
 	struct i2c_client *client;
 	struct input_dev *input_dev;
-	struct early_suspend early_suspend;
 	u8 family_id;
 	u32 finger_mask;
 	int gpio_read_done;
@@ -2258,14 +2261,14 @@ static int mxt224_internal_resume(struct mxt224_data *data)
 	return ret;
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
+#ifdef CONFIG_LCD_NOTIFY
 #define mxt224_suspend	NULL
 #define mxt224_resume	NULL
 
-static void mxt224_early_suspend(struct early_suspend *h)
+static void mxt224_early_suspend(struct notifier_block *h)
 {
-	struct mxt224_data *data = container_of(h, struct mxt224_data,
-								early_suspend);
+	struct mxt224_data *data = NULL;
+
 	mutex_lock(&lock);
 
 	mxt224_enabled = 0;
@@ -2290,11 +2293,11 @@ static void mxt224_early_suspend(struct early_suspend *h)
 	printk(KERN_ERR "[TSP] mxt224_early_suspend \n");
 }
 
-static void mxt224_late_resume(struct early_suspend *h)
+static void mxt224_late_resume(struct notifier_block *h)
 {
 	bool ta_status=0;
-	struct mxt224_data *data = container_of(h, struct mxt224_data,
-								early_suspend);
+	struct mxt224_data *data = NULL;
+
 	mutex_lock(&lock);
 	mxt224_internal_resume(data);
 	enable_irq(data->client->irq);
@@ -2321,6 +2324,28 @@ static void mxt224_late_resume(struct early_suspend *h)
 	calibrate_chip();
 	mutex_unlock(&lock);
 	printk(KERN_ERR "[TSP] mxt224_late_resume \n");
+}
+
+static int atmel_lcd_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data) {
+	pr_debug("%s: event = %lu\n", __func__, event);
+
+	switch (event) {
+	case LCD_EVENT_ON_START:
+		mxt224_late_resume(this);
+		break;
+	case LCD_EVENT_ON_END:
+		break;
+	case LCD_EVENT_OFF_START:
+		mxt224_early_suspend(this);
+		break;
+	case LCD_EVENT_OFF_END:
+		break;
+	default:
+		break;
+	}
+
+	return 0;
 }
 #else
 static int mxt224_suspend(struct device *dev)
@@ -4228,16 +4253,14 @@ if (device_create_file(sec_touchscreen, &dev_attr_mxt_touchtype) < 0)
 	if (device_create_file(qt602240_noise_test, &dev_attr_set_firm_version) < 0)
 		printk(KERN_ERR "Failed to create device file(%s)!\n", dev_attr_set_firm_version.attr.name);
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-#if defined (CONFIG_KOR_MODEL_SHV_E110S) || defined (CONFIG_JPN_MODEL_SC_03D) ||  defined (CONFIG_TARGET_LOCALE_USA)
-	data->early_suspend.level = EARLY_SUSPEND_LEVEL_DISABLE_FB+3;
-#else
-	data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
-#endif
-
-	data->early_suspend.suspend = mxt224_early_suspend;
-	data->early_suspend.resume = mxt224_late_resume;
-	register_early_suspend(&data->early_suspend);
+#ifdef CONFIG_LCD_NOTIFY
+	atmel_lcd_notif.notifier_call = atmel_lcd_notifier_callback;
+	if (lcd_register_client(&atmel_lcd_notif) != 0) {
+		pr_err("%s: Failed to register lcd callback\n", __func__);
+		ret = -EINVAL;
+		lcd_unregister_client(&atmel_lcd_notif);
+		goto err;
+	}
 #endif
 
 #ifdef CLEAR_MEDIAN_FILTER_ERROR
@@ -4265,6 +4288,8 @@ if (device_create_file(sec_touchscreen, &dev_attr_mxt_touchtype) < 0)
 
 	return 0;
 
+err:
+	return ret;
 err_irq:
 	tsp_probe_debug_value = -4;
 err_reset:
@@ -4307,8 +4332,8 @@ static int __devexit mxt224_remove(struct i2c_client *client)
 {
 	struct mxt224_data *data = i2c_get_clientdata(client);
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	unregister_early_suspend(&data->early_suspend);
+#ifdef CONFIG_LCD_NOTIFY
+	lcd_unregister_client(&atmel_lcd_notif);
 #endif
 	free_irq(client->irq, data);
 	kfree(data->objects);

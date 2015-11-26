@@ -63,11 +63,17 @@
 #include <linux/backlight.h>
 #include <linux/miscdevice.h>
 #include <linux/regulator/consumer.h>
+#ifdef CONFIG_LCD_NOTIFY
+#include <linux/lcd_notify.h>
+#endif
 
 #define MAPPING_TBL_AUTO_BRIGHTNESS 1
 #include "lcdc_ld9040_seq.h"
 #include "lcdc_ea8868_seq.h"
 
+#ifdef CONFIG_LCD_NOTIFY
+static struct notifier_block ld9040_lcd_notif;
+#endif
 
 //#if defined (CONFIG_JPN_MODEL_SC_03D)
 #define SMART_DIMMING 1
@@ -131,9 +137,6 @@ struct ld9040 {
 	struct lcd_device		*ld;
 	struct backlight_device		*bd;
 	struct lcd_platform_data	*lcd_pd;
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	struct early_suspend    early_suspend;
-#endif
 
 #if defined(SMART_DIMMING) // smartdimming
 	boolean	isSmartDimming;
@@ -2171,8 +2174,8 @@ static DEVICE_ATTR(auto_brightness, 0664,
 
 ///////////////////////
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void ld9040_early_suspend(struct early_suspend *h) {
+#ifdef CONFIG_LCD_NOTIFY
+static void ld9040_early_suspend(struct notifier_block *h) {
 
 	int i;
 
@@ -2196,7 +2199,7 @@ static void ld9040_early_suspend(struct early_suspend *h) {
 	return;
 }
 
-static void ld9040_late_resume(struct early_suspend *h) {
+static void ld9040_late_resume(struct notifier_block *h) {
 
 	static struct regulator *l3 = NULL;
 	static struct regulator *l19 = NULL;
@@ -2233,6 +2236,28 @@ static void ld9040_late_resume(struct early_suspend *h) {
 	}
 
 	return;
+}
+
+static int ld9040_lcd_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data) {
+	pr_debug("%s: event = %lu\n", __func__, event);
+
+	switch (event) {
+	case LCD_EVENT_ON_START:
+		ld9040_late_resume(this);
+		break;
+	case LCD_EVENT_ON_END:
+		break;
+	case LCD_EVENT_OFF_START:
+		ld9040_early_suspend(this);
+		break;
+	case LCD_EVENT_OFF_END:
+		break;
+	default:
+		break;
+	}
+
+	return 0;
 }
 #endif
 
@@ -2323,14 +2348,19 @@ static int __devinit ld9040_probe(struct platform_device *pdev)
       }
 #endif
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	lcd.early_suspend.suspend = ld9040_early_suspend;
-	lcd.early_suspend.resume = ld9040_late_resume;
-	lcd.early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN;
-	register_early_suspend(&lcd.early_suspend);
+#ifdef CONFIG_LCD_NOTIFY
+	ld9040_lcd_notif.notifier_call = ld9040_lcd_notifier_callback;
+	if (lcd_register_client(&ld9040_lcd_notif) != 0) {
+		pr_err("%s: Failed to register lcd callback\n", __func__);
+		ret = -EINVAL;
+		lcd_unregister_client(&ld9040_lcd_notif);
+		goto err;
+	}
 #endif
 
 	return 0;
+err:
+	return ret;
 }
 
 static void ld9040_shutdown(struct platform_device *pdev)

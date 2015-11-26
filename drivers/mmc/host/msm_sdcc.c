@@ -79,6 +79,10 @@ static struct dentry *debugfs_file;
 static int  msmsdcc_dbg_init(void);
 #endif
 
+#ifdef CONFIG_LCD_NOTIFY
+static struct notifier_block sdcc_lcd_notif;
+#endif
+
 static u64 dma_mask = DMA_BIT_MASK(32);
 static unsigned int msmsdcc_pwrsave = 1;
 
@@ -4102,7 +4106,7 @@ store_polling(struct device *dev, struct device_attribute *attr,
 	} else {
 		mmc->caps &= ~MMC_CAP_NEEDS_POLL;
 	}
-#ifdef CONFIG_HAS_EARLYSUSPEND
+#ifdef CONFIG_LCD_NOTIFY
 	host->polling_enabled = mmc->caps & MMC_CAP_NEEDS_POLL;
 #endif
 	spin_unlock_irqrestore(&host->lock, flags);
@@ -4167,11 +4171,10 @@ store_idle_timeout(struct device *dev, struct device_attribute *attr,
 	return count;
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void msmsdcc_early_suspend(struct early_suspend *h)
+#ifdef CONFIG_LCD_NOTIFY
+static void msmsdcc_early_suspend(struct notifier_block *h)
 {
-	struct msmsdcc_host *host =
-		container_of(h, struct msmsdcc_host, early_suspend);
+	struct msmsdcc_host *host = NULL;
 	unsigned long flags;
 
 	spin_lock_irqsave(&host->lock, flags);
@@ -4179,10 +4182,9 @@ static void msmsdcc_early_suspend(struct early_suspend *h)
 	host->mmc->caps &= ~MMC_CAP_NEEDS_POLL;
 	spin_unlock_irqrestore(&host->lock, flags);
 };
-static void msmsdcc_late_resume(struct early_suspend *h)
+static void msmsdcc_late_resume(struct notifier_block *h)
 {
-	struct msmsdcc_host *host =
-		container_of(h, struct msmsdcc_host, early_suspend);
+	struct msmsdcc_host *host = NULL;
 	unsigned long flags;
 
 	if (host->polling_enabled) {
@@ -4192,6 +4194,29 @@ static void msmsdcc_late_resume(struct early_suspend *h)
 		spin_unlock_irqrestore(&host->lock, flags);
 	}
 };
+
+static int sdcc_lcd_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data) {
+	pr_debug("%s: event = %lu\n", __func__, event);
+
+	switch (event) {
+	case LCD_EVENT_ON_START:
+		msmsdcc_late_resume(this);
+		break;
+	case LCD_EVENT_ON_END:
+		break;
+	case LCD_EVENT_OFF_START:
+		msmsdcc_early_suspend(this);
+		break;
+	case LCD_EVENT_OFF_END:
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
 #endif
 
 void msmsdcc_print_regs(const char *name, void __iomem *base,
@@ -4866,11 +4891,14 @@ msmsdcc_probe(struct platform_device *pdev)
 
 	mmc_add_host(mmc);
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	host->early_suspend.suspend = msmsdcc_early_suspend;
-	host->early_suspend.resume  = msmsdcc_late_resume;
-	host->early_suspend.level   = EARLY_SUSPEND_LEVEL_DISABLE_FB;
-	register_early_suspend(&host->early_suspend);
+#ifdef CONFIG_LCD_NOTIFY
+	sdcc_lcd_notif.notifier_call = sdcc_lcd_notifier_callback;
+	if (lcd_register_client(&sdcc_lcd_notif) != 0) {
+		pr_err("%s: Failed to register lcd callback\n", __func__);
+		ret = -EINVAL;
+		lcd_unregister_client(&sdcc_lcd_notif);
+		goto out;
+	}
 #endif
 
 	pr_info("%s: Qualcomm MSM SDCC-core at 0x%016llx irq %d,%d dma %d"
@@ -5074,8 +5102,8 @@ static int msmsdcc_remove(struct platform_device *pdev)
 	iounmap(host->base);
 	mmc_free_host(mmc);
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	unregister_early_suspend(&host->early_suspend);
+#ifdef CONFIG_LCD_NOTIFY
+	lcd_unregister_client(&sdcc_lcd_notif);
 #endif
 	pm_runtime_disable(&(pdev)->dev);
 	pm_runtime_set_suspended(&(pdev)->dev);

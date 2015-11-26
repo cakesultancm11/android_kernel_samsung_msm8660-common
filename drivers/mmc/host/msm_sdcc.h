@@ -25,7 +25,9 @@
 #include <linux/scatterlist.h>
 #include <linux/dma-mapping.h>
 #include <linux/wakelock.h>
-#include <linux/earlysuspend.h>
+#ifdef CONFIG_LCD_NOTIFY
+#include <linux/lcd_notify.h>
+#endif
 #include <linux/pm_qos_params.h>
 #include <mach/sps.h>
 
@@ -373,8 +375,7 @@ struct msmsdcc_host {
 	bool			is_sps_mode;
 	struct msmsdcc_pio_data	pio;
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	struct early_suspend early_suspend;
+#ifdef CONFIG_LCD_NOTIFY
 	int polling_enabled;
 #endif
 
