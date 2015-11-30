@@ -634,7 +634,9 @@ static int sec_bat_read_adc(struct sec_bat_info *info, int channel,
 		int *adc_data, int *adc_physical);
 
 static int batt_level = 100;
+module_param(batt_level, int, 0444);
 static int batt_voltage = 4000000;
+module_param(batt_voltage, int, 0444);
 
 int sec_get_batt_level(void)
 {
