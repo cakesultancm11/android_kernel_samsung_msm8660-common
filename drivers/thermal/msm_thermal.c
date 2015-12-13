@@ -60,19 +60,19 @@ static struct msm_thermal_tuners {
     uint32_t allowed_low_freq;
 } msm_thermal_tuners_ins = {
     .sensor_id = 0,
-    .poll_ms = 150,
-    .shutdown_temp = 80,
+    .poll_ms = 250,
+    .shutdown_temp = 72,
 
-    .allowed_max_high = 76,
-    .allowed_max_low = 71,
+    .allowed_max_high = 68,
+    .allowed_max_low = 64,
     .allowed_max_freq = 384000,
 
-    .allowed_mid_high = 72,
-    .allowed_mid_low = 67,
+    .allowed_mid_high = 65,
+    .allowed_mid_low = 60,
     .allowed_mid_freq = 810000,
 
-    .allowed_low_high = 70,
-    .allowed_low_low = 64,
+    .allowed_low_high = 63,
+    .allowed_low_low = 57,
     .allowed_low_freq = 1350000,
 };
 
