@@ -23,7 +23,6 @@
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <linux/hrtimer.h>
-#include <mach/cpufreq.h>
 #include <asm/cputime.h>
 #ifdef CONFIG_MSM_MPDEC_INPUTBOOST_CPUMIN
 #include "../../arch/arm/mach-msm/msm_mpdecision.h"
