@@ -224,7 +224,7 @@ static ssize_t arch_power_store(struct kobject *kobj, struct kobj_attribute *att
 		input = 0;
 
 	Larch_power = input;
-	relay_gfs(Larch_power);
+	relay_ap(Larch_power);
 	return count;
 }
 
