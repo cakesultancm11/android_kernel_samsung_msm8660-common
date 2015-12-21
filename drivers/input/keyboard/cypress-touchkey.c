@@ -153,6 +153,7 @@ static u8 firm_version = 0;
 
 #ifdef CONFIG_TOUCH_CYPRESS_SWEEP2WAKE
 int s2w_switch = 1;
+int s2w_s2sonly = 0;
 int s2w_start = 0;
 int s2w_count = 0;
 int s2w_lenient = 1;
@@ -579,7 +580,7 @@ static irqreturn_t touchkey_interrupt(int irq, void *dummy)  // ks 79 - threaded
 			int key = data[0] & KEYCODE_BIT;
 			switch (key) {
 			case 1:
-				if(scr_suspended && s2w_switch == 1){
+				if(scr_suspended && s2w_switch && !s2w_s2sonly){
 					s2w_count = 1;
 					s2w_start = jiffies_to_msecs(jiffies);
 				}
@@ -602,7 +603,7 @@ static irqreturn_t touchkey_interrupt(int irq, void *dummy)  // ks 79 - threaded
 				}
 				break;
 			case 4:
-				if(scr_suspended && s2w_switch == 1){
+				if(scr_suspended && s2w_switch && !s2w_s2sonly){
 					if (s2w_count > 2 || (s2w_lenient && s2w_count)) sweep2wake_pwrtrigger();
 					s2w_count = 0;
 				}
