@@ -232,6 +232,7 @@ show_one(freq_mid_thresh, freq_mid_thresh);
 show_one(trip_low_thresh, trip_low_thresh);
 show_one(reset_low_thresh, reset_low_thresh);
 show_one(freq_low_thresh, freq_low_thresh);
+show_one(poll_ms, poll_ms);
 
 static ssize_t store_start(struct kobject *a, struct attribute *b,
 				   const char *buf, size_t count)
@@ -378,6 +379,20 @@ static ssize_t store_freq_low_thresh(struct kobject *a, struct attribute *b,
 	return count;
 }
 
+static ssize_t store_poll_ms(struct kobject *a, struct attribute *b,
+				   const char *buf, size_t count)
+{
+	unsigned int input;
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+	if (ret != 1)
+		return -EINVAL;
+
+	therm_conf.poll_ms = input;
+
+	return count;
+}
+
 define_one_global_rw(start);
 define_one_global_rw(trip_high_thresh);
 define_one_global_rw(reset_high_thresh);
@@ -388,6 +403,7 @@ define_one_global_rw(freq_mid_thresh);
 define_one_global_rw(trip_low_thresh);
 define_one_global_rw(reset_low_thresh);
 define_one_global_rw(freq_low_thresh);
+define_one_global_rw(poll_ms);
 
 static struct attribute *msm_thermal_attributes[] = {
 	&start.attr,
@@ -400,6 +416,7 @@ static struct attribute *msm_thermal_attributes[] = {
 	&trip_low_thresh.attr,
 	&reset_low_thresh.attr,
 	&freq_low_thresh.attr,
+	&poll_ms.attr,
 	NULL
 };
 
