@@ -47,8 +47,8 @@
 
 #define LEVEL_MAX           100
 #define LEVEL_MIN           50
-#define LEVEL_DEFAULT       100
-#define LEVEL_THRESHOLD     100
+#define LEVEL_DEFAULT       75
+#define LEVEL_THRESHOLD     75
 
 /*
 ** This SPI supports only one actuator.
@@ -112,7 +112,7 @@ static bool g_bAmpEnabled = false;
 
 long int freq_count = FREQ_COUNT;
 
-unsigned long pwm_val = 100;
+unsigned long pwm_val = LEVEL_DEFAULT;
 
 int vibe_set_pwm_freq(int nForce)
 {
