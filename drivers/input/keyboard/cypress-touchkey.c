@@ -428,7 +428,7 @@ void touchkey_resume_func(struct work_struct *p)
 //	int rc = 0;
 
 #ifdef CONFIG_TOUCH_CYPRESS_SWEEP2WAKE
-	if (s2w_switch || s2s_switch || dt2w_switch || dt2s_switch) {
+	if (s2w_switch || dt2w_switch) {
 		disable_irq_wake(IRQ_TOUCHKEY_INT);		
 	} else {
 #endif
@@ -807,6 +807,9 @@ static void sec_touchkey_early_suspend(struct early_suspend *h)
 #ifdef CONFIG_TOUCH_CYPRESS_SWEEP2WAKE
 	if (s2w_switch || s2s_switch || dt2w_switch || dt2s_switch) {
 		scr_suspended = true;
+	}
+
+	if (s2w_switch || dt2w_switch) {
 		enable_irq_wake(IRQ_TOUCHKEY_INT);
 	} else {
 #endif
@@ -1084,7 +1087,7 @@ if(touchled_cmd_reversed) {
 	|| defined (CONFIG_USA_MODEL_SGH_T769)|| defined(CONFIG_USA_MODEL_SGH_I577)|| defined(CONFIG_CAN_MODEL_SGH_I577R)\
 	|| defined(CONFIG_USA_MODEL_SGH_I757) || defined(CONFIG_CAN_MODEL_SGH_I757M)
 #ifdef CONFIG_TOUCH_CYPRESS_SWEEP2WAKE
-	if (s2w_switch || s2s_switch || dt2w_switch || dt2s_switch) {
+	if (s2w_switch || dt2w_switch) {
 		disable_irq_wake(IRQ_TOUCHKEY_INT);
 	} else {
 #endif
