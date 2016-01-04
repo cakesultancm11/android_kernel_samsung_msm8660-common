@@ -14155,7 +14155,7 @@ static int mipi_S6E8AA0_panel_power(int enable)
 }
 #endif
 
-static int panel_uv = 0;
+static int panel_uv = 500;
 module_param(panel_uv, int, 0664);
 
 #define LD9040_DEFAULT_VOLTAGE 3000000
