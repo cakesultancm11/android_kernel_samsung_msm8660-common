@@ -21,68 +21,68 @@
 /* sysfs interface */
 static ssize_t s2w_switch_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-return sprintf(buf, "%d\n", s2w_switch);
+	return sprintf(buf, "%d\n", s2w_switch);
 }
 
 static ssize_t s2w_switch_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
-sscanf(buf, "%du", &s2w_switch);
-return count;
+	sscanf(buf, "%du", &s2w_switch);
+	return count;
 }
 
 static ssize_t s2s_switch_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-return sprintf(buf, "%d\n", s2s_switch);
+	return sprintf(buf, "%d\n", s2s_switch);
 }
 
 static ssize_t s2s_switch_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
-sscanf(buf, "%du", &s2s_switch);
-return count;
+	sscanf(buf, "%du", &s2s_switch);
+	return count;
 }
 
 static ssize_t s2w_lenient_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-return sprintf(buf, "%d\n", s2w_lenient);
+	return sprintf(buf, "%d\n", s2w_lenient);
 }
 
 static ssize_t s2w_lenient_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
-sscanf(buf, "%du", &s2w_lenient);
-return count;
+	sscanf(buf, "%du", &s2w_lenient);
+	return count;
 }
 
 static ssize_t dt2w_switch_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-return sprintf(buf, "%d\n", dt2w_switch);
+	return sprintf(buf, "%d\n", dt2w_switch);
 }
 
 static ssize_t dt2w_switch_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
-sscanf(buf, "%du", &dt2w_switch);
-return count;
+	sscanf(buf, "%du", &dt2w_switch);
+	return count;
 }
 
 static ssize_t dt2s_switch_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-return sprintf(buf, "%d\n", dt2s_switch);
+	return sprintf(buf, "%d\n", dt2s_switch);
 }
 
 static ssize_t dt2s_switch_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
-sscanf(buf, "%du", &dt2s_switch);
-return count;
+	sscanf(buf, "%du", &dt2s_switch);
+	return count;
 }
 
 static ssize_t pocket_detect_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-return sprintf(buf, "%d\n", pocket_detect);
+	return sprintf(buf, "%d\n", pocket_detect);
 }
 
 static ssize_t pocket_detect_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
-sscanf(buf, "%du", &pocket_detect);
-return count;
+	sscanf(buf, "%du", &pocket_detect);
+	return count;
 }
 
 static struct kobj_attribute s2w_switch_attribute =
@@ -104,17 +104,17 @@ static struct kobj_attribute pocket_detect_attribute =
 __ATTR(pocket_detect, 0666, pocket_detect_show, pocket_detect_store);
 
 static struct attribute *attrs[] = {
-&s2w_switch_attribute.attr,
-&s2s_switch_attribute.attr,
-&s2w_lenient_attribute.attr,
-&dt2w_switch_attribute.attr,
-&dt2s_switch_attribute.attr,
-&pocket_detect_attribute.attr,
-NULL,
+	&s2w_switch_attribute.attr,
+	&s2s_switch_attribute.attr,
+	&s2w_lenient_attribute.attr,
+	&dt2w_switch_attribute.attr,
+	&dt2s_switch_attribute.attr,
+	&pocket_detect_attribute.attr,
+	NULL,
 };
 
 static struct attribute_group attr_group = {
-.attrs = attrs,
+	.attrs = attrs,
 };
 
 static struct kobject *s2w_switch_kobj;
